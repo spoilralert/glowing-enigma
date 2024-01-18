@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id              String           @id @default(uuid()) @db.Uuid
+  date            DateTime         @default(now())
+  amount          Int
+  memo            String?
+  cleared         String
+  approved        Boolean          @default(true)
+  accountId       String           @db.Uuid
+  account         Account          @relation(fields: [accountId], references: [id])
+  payeeId         String           @db.Uuid
+  payee           Payee            @relation(fields: [payeeId], references: [id])
+  categoryId      String           @db.Uuid
+  category        Category         @relation(fields: [categoryId], references: [id])
+  subTransactions SubTransaction[]
+}
+
+model BudgetPost {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  amount     Int
+  categoryId String   @db.Uuid
+  from       DateTime
+  to         DateTime
+  category   Category @relation(fields: [categoryId], references: [id])
+}
+
+model SubTransaction {
+  id            String      @id @default(uuid()) @db.Uuid
+  amount        Int
+  memo          String?
+  transactionId String      @db.Uuid
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  categoryId    String      @db.Uuid
+  category      Category    @relation(fields: [categoryId], references: [id])
+}
+
+model Account {
+  id               String        @id @default(uuid()) @db.Uuid
+  name             String
+  type             String?
+  balance          Int           @default(0)
+  clearedBalance   Int           @default(0)
+  unclearedBalance Int           @default(0)
+  lastReconciled   DateTime?
+  transactions     Transaction[]
+}
+
+model Payee {
+  id                String        @id @default(uuid()) @db.Uuid
+  name              String
+  transferAccountId String?       @db.Uuid
+  transactions      Transaction[]
+}
+
+model Category {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  categoryGroupId String           @db.Uuid
+  categoryGroup   CategoryGroup    @relation(fields: [categoryGroupId], references: [id])
+  transactions    Transaction[]
+  subTransactions SubTransaction[]
+  budgetPosts     BudgetPost[]
+}
+
+model CategoryGroup {
+  id         String     @id @default(uuid())
+  name       String
+  categories Category[]
+}
